@@ -1,11 +1,48 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
+import { Airport, ResultsMetadata } from "@/types/aviation";
+import Head from "next/head";
+import { useEffect, useState } from "react";
 
-const inter = Inter({ subsets: ['latin'] })
+const limit = 100;
+const skip = 0;
+const sortBy = "iata";
+const sortByOrder = "asc";
 
 export default function Home() {
+  // Call api/aviation to get the data
+  const [aviation, setAviation] = useState<Airport[]>([]);
+  const [resultsMetadata, setResultsMetadata] =
+    useState<ResultsMetadata | null>(null);
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(
+        `https://airportsdata.p.rapidapi.com/airports?limit=${limit}&skip=${skip}&sortBy=${sortBy}&sortByOrder=${sortByOrder}`,
+        {
+          headers: {
+            "X-RapidAPI-Key": process.env.NEXT_PUBLIC_API_KEY || "",
+            "X-RapidAPI-Host": "airportsdata.p.rapidapi.com",
+          },
+        }
+      );
+
+      const { data, metadata } = await res.json();
+      if (Array.isArray(data)) setAviation(data);
+      if (metadata) setResultsMetadata(metadata);
+    } catch (err) {
+      console.log(err);
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   return (
     <>
       <Head>
@@ -14,110 +51,63 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
+      <main className="h-screen w-screen flex flex-col">
+        <div className="flex items-center justify-between w-full p-4 bg-indigo-800">
+          <h1 className="text-2xl font-bold text-slate-100 select-none">
+            AirScanner
+          </h1>
+
+          <div className="h-9 w-9 bg-indigo-100 rounded-full flex items-center justify-center cursor-pointer" />
         </div>
 
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
-        </div>
+        <div className="flex flex-col grow w-full p-4 gap-4 bg-white text-gray-800 relative">
+          {isLoading ? (
+            <h1>Loading...</h1>
+          ) : !aviation?.length ? (
+            <h1>Sorry, we couldn&apos;t find any data.</h1>
+          ) : (
+            <div className="flex flex-col gap-4 text-base">
+              <h1>
+                Showing <span className="font-semibold">{aviation.length} of{" "}
+                {resultsMetadata?.total || aviation.length}</span> operational airports
+                and landing strips in the world.
+              </h1>
 
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
+              {aviation?.map((airport, index) => (
+                <div
+                  key={`${airport.iata}-${index}`}
+                  className="flex flex-col items-start justify-start w-full p-4 rounded-lg shadow-gray-400 shadow-sm"
+                >
+                  <div className="flex items-start justify-between w-full">
+                    <div className="flex flex-col items-start justify-start gap-1">
+                      <h1>{airport.name}</h1>
+                      <div className="flex items-center justify-start gap-1 font-semibold text-gray-600 text-sm">
+                        {airport.city && <h1>{airport.city}, </h1>}
+                        {airport.subd && <h1>{airport.subd}, </h1>}
+                        <h1>{airport.country}</h1>
+                      </div>
+                      <div className="flex items-center justify-start gap-4 font-semibold text-gray-600 text-xs">
+                        {airport.lat && airport.lon && (
+                          <h1>
+                            {parseFloat(airport.lat).toFixed(2)},{" "}
+                            {parseFloat(airport.lon).toFixed(2)}
+                          </h1>
+                        )}
+                        {airport.elevation && <h1>{airport.elevation} MSL</h1>}
+                      </div>
+                    </div>
+                    {airport.iata && (
+                      <h1 className="bg-indigo-100 rounded-lg p-2 min-w-[50px] flex justify-center items-center">
+                        {airport.iata}
+                      </h1>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </>
-  )
+  );
 }
