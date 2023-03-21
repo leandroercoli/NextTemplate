@@ -45,20 +45,22 @@ export default function Home({ users }: HomeProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch(
-        // "/api/users" if we wanted to use a local api
-        `https://airportsdata.p.rapidapi.com/airports?limit=${limit}&skip=${skip}&sortBy=${sortBy}&sortByOrder=${sortByOrder}`,
-        {
-          headers: {
-            "X-RapidAPI-Key": process.env.NEXT_PUBLIC_API_KEY || "",
-            "X-RapidAPI-Host": "airportsdata.p.rapidapi.com",
-          },
-        }
-      );
+      if (process.env.NEXT_PUBLIC_API_KEY) {
+        const res = await fetch(
+          // "/api/users" if we wanted to use a local api
+          `https://airportsdata.p.rapidapi.com/airports?limit=${limit}&skip=${skip}&sortBy=${sortBy}&sortByOrder=${sortByOrder}`,
+          {
+            headers: {
+              "X-RapidAPI-Key": process.env.NEXT_PUBLIC_API_KEY,
+              "X-RapidAPI-Host": "airportsdata.p.rapidapi.com",
+            },
+          }
+        );
 
-      const { data, metadata } = await res.json();
-      if (Array.isArray(data)) setAviation(data);
-      if (metadata) setResultsMetadata(metadata);
+        const { data, metadata } = await res.json();
+        if (Array.isArray(data)) setAviation(data);
+        if (metadata) setResultsMetadata(metadata);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -102,7 +104,20 @@ export default function Home({ users }: HomeProps) {
         </div>
 
         <div className="flex flex-col grow w-full p-4 gap-4 bg-white text-gray-800 relative">
-          {isLoading ? (
+          {!process.env.NEXT_PUBLIC_API_KEY ? (
+            <h1>
+              Please add your API key to the .env.local file. You can get one at{" "}
+              <a
+                href="https://rapidapi.com/gamma-solutions-gamma-solutions-default/api/airportsdata"
+                target="_blank"
+                rel="noreferrer"
+                className="text-indigo-600 underline"
+              >
+                here
+              </a>
+              .
+            </h1>
+          ) : isLoading ? (
             <h1>Loading...</h1>
           ) : !aviation?.length ? (
             <h1>Sorry, we couldn&apos;t find any data.</h1>
